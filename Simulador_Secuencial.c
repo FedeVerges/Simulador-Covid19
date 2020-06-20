@@ -11,8 +11,8 @@ Para Ejecutar: "gcc -o <nombre-ejecutable> <nombre-archivo.c>", luego "./ejecuta
 #include <sys/time.h>
 
 // Dimension de la matriz
-#define FILAS 100
-#define COLUMNAS 100
+#define FILAS 800
+#define COLUMNAS 800
 #define LAPS 10
 
 // Simulacion
@@ -381,6 +381,7 @@ int main()
                     Calcular_Proximo_Estado(tablero, tablero_auxiliar, tablero[i][j], frontera_filas, frontera_columnas);
                 }
             }
+            printf("Actualizacion terminada");
             // Swap de punteros de la matriz.
             temp = tablero;
             tablero = tablero_auxiliar;

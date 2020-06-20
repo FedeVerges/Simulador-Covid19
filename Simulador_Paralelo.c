@@ -11,12 +11,12 @@ Para Ejecutar: "mpicc -o <nombre-ejecutable>  <nombre-archivo.c>", luego "mpirun
 #include <sys/time.h>
 
 // Dimension de la matriz
-#define FILAS 101
-#define COLUMNAS 101
+#define FILAS 200
+#define COLUMNAS 200
 #define LAPS 10
 
 // Simulacion
-#define DIAS 1
+#define DIAS 15
 
 // Funcion para mostrar los colores de las celdas.
 void mostrarColores(Celda c)

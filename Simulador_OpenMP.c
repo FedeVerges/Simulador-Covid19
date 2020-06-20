@@ -3,7 +3,6 @@ PRACTICO DE MAQUINA SISTEMAS DISTRIBUIDOS Y PARALELOS 2020.
 ALUMNO: FEDERICO A. VERGES
 
 Para Ejecutar: "gcc -o <nombre-ejecutable> -lm -fopenmp <nombre-archivo.c>", luego "./ejecutable"
-
 */
 
 #include <stdio.h>
