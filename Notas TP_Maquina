@@ -1,0 +1,34 @@
+Celda:
+	
+	- Estado :{Blanco, Azul, Naranja, Rojo, Verde, Amarillo, Negro}
+	
+	- Edad de la persona: {Niño, Adulto o Anciano}.
+	
+	- Enfermedad de Riesgo (diabetes, hipertensión, enfermedad respiratoria, Inmuno- deprimido, etc.): {SI, NO}.
+
+	- Profesión de Riesgo (enfermero, medico, odontólogo, cajero, chofer de servicio público, etc.): {SI, NO}.
+
+	- Vacunas Preventiva (vacunado para alguna de las enfermedades estacionales: gripe, neumonía y meningitis): {SI, NO}.
+
+	- Sexo Biológico: {Mujer, Hombre}.
+	
+Existen 8 vecinos.
+
+Reglas para el cambio de estado:
+
+	- Susceptible → Enfermo sin contagio : La celda CENTRAL es suceptible y alguna de sus celdas adyacentes está infectadas en etapa de contagio, o bien incubando la enfermedad en etapa de contagio, LA CELDA CENTRAL PASARÁ A INCUBAR LA ENFERMEDAD con determinada probabilidad en el tiempo t + 1.
+	
+	USAR FORMULA DE ACTUALIZACIÓN.
+	
+	- Enfermo sin contagio → Enfermo con Contagio : Si la celda está incubando COVID-19 y, en el tiempo t han transcurrido 4 días desde el contagio, en el tiempo t + 1 la celda estará en el estado de incubación con contagio.
+	
+	- Enfermo con contagio → Paciente aislado : Luego de 2 días de estar en estado de infección con síntomas, se considera que, con una probabilidad del 90%, la persona será aislada para atención médica, dejando de propagar la enfermedad en el tiempo t +1
+	
+	- Enfermo → Recupetado/Muerto: Si en el tiempo t han transcurrido 14 días desde el contagio, una persona infectada podría recuperarse o morir en el tiempo t +1. USAR ESTADISTICAS DE MORTALIDAD.
+	
+	
+Poblacion total = Suceptibles + Individuos infectados + Individus Recuperado.
+
+
+Infectado = {Sin contagiar, contagiando, aislado}
+
