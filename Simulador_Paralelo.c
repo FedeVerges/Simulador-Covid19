@@ -382,9 +382,7 @@ int main(int argc, char **argv)
         offsetof(Celda, estado),
         offsetof(Celda, edad),
         offsetof(Celda, vacunas),
-        offsetof(Celda, grupo_riesgo),
-        offsetof(Celda, sexo_biologico),
-        offsetof(Celda, timer)};
+        offsetof(Celda, grupo_riesgo),offsetof(Celda, sexo_biologico),offsetof(Celda, timer)};
     MPI_Datatype mpi_celda_lenghts[] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT, MPI_INT};
 
     int cant_elem_to_send = frontera_columnas * world_size; // amount elements to send on Scatter.

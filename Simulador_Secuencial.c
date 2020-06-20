@@ -11,8 +11,8 @@ Para Ejecutar: "gcc -o <nombre-ejecutable> <nombre-archivo.c>", luego "./ejecuta
 #include <sys/time.h>
 
 // Dimension de la matriz
-#define FILAS 198
-#define COLUMNAS 198
+#define FILAS 798
+#define COLUMNAS 798
 #define LAPS 10
 
 // Simulacion
