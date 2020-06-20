@@ -5,21 +5,19 @@ ALUMNO: FEDERICO A. VERGES
 Para Ejecutar: "mpicc -o <nombre-ejecutable> -lm -fopenmp <nombre-archivo.c>", luego "./ejecutable"
 
 */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
 #include "Celdas.h"
-#include <omp.h>
 #include <sys/time.h>
 
 // Dimension de la matriz
-#define FILAS 10
-#define COLUMNAS 10
-#define LAPS 10
+#define FILAS 200
+#define COLUMNAS 200
+#define LAPS 2
 
 // Simulacion
-#define DIAS 120
+#define DIAS 15
 
 // Funcion para mostrar los colores de las celdas.
 void mostrarColores(Celda c)
@@ -115,6 +113,7 @@ void initMatrix(int filas, int columnas, Celda *tablero)
                     color = ROJO;
                     init_timer = 5;
                 }
+                // Random Edad.
                 if (random_edad < 30)
                 {
                     edad = rand() % 21;
@@ -208,13 +207,13 @@ void Calcular_Proximo_Estado(Celda *tablero, Celda *buffer_resultado, Celda c, C
     int prob_aislamiento = 0;
     float mortalidad = 0;
     float prob_contagio = 0;
-    int *datos_vecinos = malloc(sizeof(int) * 2); // Arreglo con la cantida de vecinos y la cantidad de infectados.
+    int datos_vecinos[2]; // Arreglo con la cantida de vecinos y la cantidad de infectados.
 
     //Evaluar estado de celda.
     if ((c).estado == AZUL)
     {
         // Suceptible -> Enfermo sin contagio.
-        getCeldasInfectadas(c, buffer_fila, buffer_fila_sup, buffer_fila_inf, VECINOS, frontera_fila, frontera_columna, datos_vecinos);
+        getCeldasInfectadas(c, buffer_fila, buffer_fila_sup, buffer_fila_inf, VECINOS, frontera_fila, frontera_columna, &datos_vecinos);
 
         if (datos_vecinos[1] == 0)
         {
@@ -309,11 +308,14 @@ void getSubMatrix(Celda *matrix, Celda *submatrix, int start, int finish)
 int main(int argc, char **argv)
 {
 
+    /* Variables */
+
     //Frontera
     int frontera_filas = FILAS + 2;
     int frontera_columnas = COLUMNAS + 2;
     int start; // Flag para indicar el desplazamiento.
     int retorno = 0;
+    int control_iteraciones; // Controla la cantidad de iteraciones para no crear overflow
 
     //Rerservando memoria para la matriz Original.
     Celda *tablero;
@@ -357,6 +359,8 @@ int main(int argc, char **argv)
         printf("No se ha podido reservar memoria");
     }
 
+    /* MPI */
+
     MPI_Init(&argc, &argv);
     MPI_Status status;
 
@@ -395,6 +399,7 @@ int main(int argc, char **argv)
         &MPI_CELDA);
     MPI_Type_commit(&MPI_CELDA);
 
+    /* Inicializando Valores */
     if (world_rank == 0)
     {
         printf("Inicializando Matriz \n");
@@ -403,7 +408,7 @@ int main(int argc, char **argv)
         start = 0;
 
         // Tablero Auxiliar
-        tablero_auxiliar = (Celda *)malloc(frontera_filas * frontera_columnas * sizeof(Celda));
+        tablero_auxiliar = (Celda *)malloc((frontera_filas * frontera_columnas) * sizeof(Celda));
         if (tablero_auxiliar == NULL)
         {
             printf("No se ha podido reservar memoria");
@@ -425,82 +430,108 @@ int main(int argc, char **argv)
         prueba.sexo_biologico = 1;
         prueba.timer = 14;
         prueba.vacunas = 1;
+
+        printf("Matriz inicializada.. Cargando celda de prueba \n");
+        // printf("Celda Cargada \n");
+        // for (int i = 0; i < frontera_filas; i++)
+        // {
+        //     for (int j = 0; j < frontera_columnas; j++)
+        //     {
+        //         int k = (i * frontera_columnas) + j;
+        //         mostrarColores(tablero[k]);
+        //     }
+        //     printf("\n");
+        // }
     }
+    // Simulación
+    struct timeval ti, tf;
+    double tiempo;
+    double tiempo_total = 0;
+    double tiempo_promedio = 0;
 
     submatrix = (Celda *)malloc(cant_elem_to_send * sizeof(Celda));
     if (submatrix == NULL)
     {
         printf("No se ha podido reservar memoria");
     }
-    omp_set_num_threads(4);
-
-    // Simulación
-
-    struct timeval ti, tf;
-    double tiempo;
-    double tiempo_total = 0;
-    double tiempo_promedio = 0;
 
     for (int i = 0; i < LAPS; i++)
     {
-
         if (world_rank == 0)
         {
             gettimeofday(&ti, NULL); // Tiempo inicial
+            printf("inicio de la simulacion\n");
         }
-        for (int i = 0; i < DIAS; i++)
+
+        for (int dias = 0; dias < DIAS; dias++)
         {
 
             // Dividir la matriz para cada proceso.
             for (int i = frontera_columnas; i < total_values; i += cant_elem_to_send)
             {
-
-                // Divido las filas de la matriz.
                 if (world_rank == 0)
                 {
                     getSubMatrix(tablero, submatrix, i, i + cant_elem_to_send); // obtener las filas.
                 }
+
                 MPI_Scatter(submatrix, frontera_columnas, MPI_CELDA, buffer_fila, frontera_columnas, MPI_CELDA, 0, MPI_COMM_WORLD);
 
                 // Divido las respectivas filas Superiores de la matriz.
-                getSubMatrix(tablero, submatrix, (i - frontera_columnas), (i - frontera_columnas) + cant_elem_to_send); // obtener las filas superiores
-
+                if (world_rank == 0)
+                {
+                    getSubMatrix(tablero, submatrix, (i - frontera_columnas), (i - frontera_columnas) + cant_elem_to_send); // obtener las filas superiores
+                }
                 MPI_Scatter(submatrix, frontera_columnas, MPI_CELDA, buffer_fila_superior, frontera_columnas, MPI_CELDA, 0, MPI_COMM_WORLD);
 
                 // Divido las respectivas filas inferiores de la matriz.
-                getSubMatrix(tablero, submatrix, (i + frontera_columnas), (i + frontera_columnas) + cant_elem_to_send); // obtener las filas superiores
-
+                if (world_rank == 0)
+                {
+                    getSubMatrix(tablero, submatrix, (i + frontera_columnas), (i + frontera_columnas) + cant_elem_to_send); // obtener las filas superiores
+                }
                 MPI_Scatter(submatrix, frontera_columnas, MPI_CELDA, buffer_fila_inferior, frontera_columnas, MPI_CELDA, 0, MPI_COMM_WORLD);
 
                 // // printf("Comenzando actualizacion estados del proceso %d \n", world_rank);
-                // printf(" proceso %d fila :  \n", world_rank);
+                //printf(" proceso %d fila :%d \n", world_rank, buffer_fila[0].cord_x);
                 // for (int i = 0; i < frontera_columnas; i++)
                 // {
                 //     mostrarColores(buffer_fila[i]);
                 // }
                 // printf("\n\n");
+                // printf("Verificando filas \n");
 
-                if ((buffer_fila[0].cord_x == 0) || (buffer_fila[0].cord_x == frontera_filas - 1))
+                if ((buffer_fila[0].cord_x > 0) && (buffer_fila[0].cord_x < frontera_filas - 1))
                 {
+#pragma omp parallel for
+                    // Actualizo los estados de las celdas.
                     for (int i = 0; i < frontera_columnas; i++)
                     {
+                        Calcular_Proximo_Estado(tablero, buffer_resultado, buffer_fila[i], buffer_fila, buffer_fila_superior, buffer_fila_inferior, frontera_filas, frontera_columnas);
+                    }
+                    printf("fin fila\n");
+                }
+                else
+                {
+
+                    for (int i = 0; i < frontera_columnas; i++)
+                    {
+                        //printf("Actualizando frontera");
                         buffer_fila[i].estado = CELESTE;
                         buffer_resultado[i] = buffer_fila[i];
                     }
                 }
-                else
-                {
-#pragma omp parallel 
-                    {
-#pragma omp for
 
-                        // Actualizo los estados de las celdas.
-                        for (int i = 0; i < frontera_columnas; i++)
-                        {
-                            Calcular_Proximo_Estado(tablero, buffer_resultado, buffer_fila[i], buffer_fila, buffer_fila_superior, buffer_fila_inferior, frontera_filas, frontera_columnas);
-                        }
-                    }
-                }
+                // for (int i = 0; i < frontera_columnas; i++)
+                // {
+                //     mostrarColores(buffer_fila[i]);
+                // }
+                // printf("\n");
+
+                // printf("Soy el proceso %d y obtengo el siguiente resultado\n", world_rank);
+                // for (int i = 0; i < frontera_columnas; i++)
+                // {
+                //     mostrarColores(buffer_resultado[i]);
+                // }
+                // printf("\n\n");
 
                 MPI_Gather(buffer_resultado, frontera_columnas, MPI_CELDA, buffer_resultado_auxiliar, frontera_columnas, MPI_CELDA, 0, MPI_COMM_WORLD);
 
@@ -510,11 +541,14 @@ int main(int argc, char **argv)
                     // Escribo lo que tiene el buffer en la porcion de la matriz auxiliar correspondiente.
                     int desplazamiento = start * cant_elem_to_send;
                     int padding = frontera_columnas; // Inserto el resultado desde la 1ra fila.
+                    if (desplazamiento == (total_values - cant_elem_to_send))
+                    {
+                        padding = 0;
+                    }
                     for (int i = 0; i < cant_elem_to_send; i++)
                     {
                         tablero_auxiliar[i + desplazamiento + padding] = buffer_resultado_auxiliar[i];
                     }
-
                     start += 1;
                 }
             }
@@ -527,6 +561,7 @@ int main(int argc, char **argv)
                 tablero_auxiliar = temp;
 
                 start = 0;
+
                 // printf("\n Tablero Final \n");
                 // for (int i = 0; i < frontera_filas; i++)
                 // {
@@ -568,15 +603,15 @@ int main(int argc, char **argv)
             printf("Has tardado: %g milisegundos\n", tiempo);
             tiempo_total += tiempo;
             tiempo = 0;
-        }
-        tiempo_promedio = tiempo_total / LAPS;
 
-        if (world_rank == 0)
-        {
-
-            printf("Tiempo Promedio en 10 corridas: %g milisegundos \n", tiempo_promedio);
+            initMatrix(frontera_filas, frontera_columnas, tablero);
+            start = 0;
         }
     }
-
+    if (world_rank == 0)
+    {
+        tiempo_promedio = tiempo_total / LAPS;
+        printf("Tiempo Promedio en 10 corridas: %g milisegundos \n", tiempo_promedio);
+    }
     MPI_Finalize();
 }

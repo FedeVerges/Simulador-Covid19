@@ -11,8 +11,8 @@ Para Ejecutar: "gcc -o <nombre-ejecutable> <nombre-archivo.c>", luego "./ejecuta
 #include <sys/time.h>
 
 // Dimension de la matriz
-#define FILAS 800
-#define COLUMNAS 800
+#define FILAS 198
+#define COLUMNAS 198
 #define LAPS 10
 
 // Simulacion
@@ -91,7 +91,7 @@ void getCeldasInfectadas(Celda c, Celda **tablero, int cant_Vecinos, int fronter
             }
         }
     }
-    // printf("Cantidad de vecinos en la celda: %d %d contagiados =  %d\n", c.cord_x, c.cord_y, vecinos_infectados);
+    printf("Cantidad de vecinos en la celda: %d %d contagiados =  %d\n", c.cord_x, c.cord_y, vecinos_infectados);
     datos_vecino[0] = vecinos;
     datos_vecino[1] = vecinos_infectados;
 }
@@ -221,12 +221,11 @@ void Calcular_Proximo_Estado(Celda **tablero, Celda **tablero_auxiliar, Celda c,
     float mortalidad = 0;
     float prob_contagio = 0;
     int datos_vecinos[2]; // Arreglo con la cantida de vecinos y la cantidad de infectados.
-
     //Evaluar estado de celda.
     if ((c).estado == AZUL)
     {
         // Suceptible -> Enfermo sin contagio.
-        getCeldasInfectadas(c, tablero, VECINOS, frontera_fila, frontera_columna, &datos_vecinos);
+        //getCeldasInfectadas(c, tablero, VECINOS, frontera_fila, frontera_columna, &datos_vecinos);
 
         if (datos_vecinos[1] == 0)
         {
@@ -236,7 +235,6 @@ void Calcular_Proximo_Estado(Celda **tablero, Celda **tablero_auxiliar, Celda c,
         {
             prob_contagio = Suceptible_Enf_sin_contagio(c, datos_vecinos[0], datos_vecinos[1]);
         }
-
         if (drand48() <= prob_contagio)
         {
             c.estado = NARANJA;
@@ -311,7 +309,7 @@ int main()
     tablero = (Celda **)malloc(sizeof(Celda *) * frontera_filas);
     if (tablero == NULL)
     {
-        //printf("No se ha podido reservar memoria");
+        printf("No se ha podido reservar memoria");
     }
 
     for (int i = 0; i < frontera_filas; i++)
@@ -319,6 +317,7 @@ int main()
         tablero[i] = (Celda *)malloc(sizeof(Celda) * frontera_columnas);
         if (tablero[i] == NULL)
         {
+            printf("No se ha podido reservar memoria");
         }
     }
 
@@ -341,7 +340,6 @@ int main()
 
     // Celda de prueba.
     Celda prueba;
-    int vecinos_temp[16] = {ARRIBA, IZQUIERDA, ARRIBA, CENTRO, ARRIBA, DERECHA, CENTRO, IZQUIERDA, CENTRO, DERECHA, ABAJO, IZQUIERDA, ABAJO, CENTRO, ABAJO, DERECHA};
     prueba.cord_x = 2;
     prueba.cord_y = 2;
     prueba.edad = 50;
@@ -350,7 +348,7 @@ int main()
     prueba.sexo_biologico = 1;
     prueba.timer = 13;
     prueba.vacunas = 1;
-    // tablero[2][2] = prueba;
+    //tablero[2][2] = prueba;
 
     //Copiando tablero a tablero_auxiliar
     for (int i = 0; i < frontera_filas; i++)
@@ -360,6 +358,7 @@ int main()
             tablero_auxiliar[i][j] = tablero[i][j];
         }
     }
+
     Celda **temp; // puntero temporal para hacer swap
 
     // SIMULACION //
@@ -370,24 +369,27 @@ int main()
 
     for (int i = 0; i < LAPS; i++)
     {
+        // Inicializando matriz.
+        initMatrix(frontera_filas, frontera_columnas, tablero);
+
         gettimeofday(&ti, NULL); // Tiempo inicial
         for (int i = 0; i < DIAS; i++)
         {
             // Actualizando proximos estados de la matriz.
-            for (int i = 0; i < frontera_filas; i++)
+            for (int i = 1; i < frontera_filas - 1; i++)
             {
-                for (int j = 0; j < frontera_columnas; j++)
+                for (int j = 1; j < frontera_columnas - 1; j++)
                 {
                     Calcular_Proximo_Estado(tablero, tablero_auxiliar, tablero[i][j], frontera_filas, frontera_columnas);
                 }
             }
-            printf("Actualizacion terminada");
+
             // Swap de punteros de la matriz.
             temp = tablero;
             tablero = tablero_auxiliar;
             tablero_auxiliar = temp;
 
-            // Mostramos los valores de la matriz.
+            // // Mostramos los valores de la matriz.
             // printf("\n Tablero \n");
             // for (int i = 0; i < frontera_filas; i++)
             // {

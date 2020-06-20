@@ -13,8 +13,8 @@ Para Ejecutar: "gcc -o <nombre-ejecutable> -lm -fopenmp <nombre-archivo.c>", lue
 #include <sys/time.h>
 
 // Dimension de la matriz
-#define FILAS 10
-#define COLUMNAS 10
+#define FILAS 200
+#define COLUMNAS 200
 #define LAPS 10
 
 // Simulacion
@@ -382,7 +382,7 @@ int main()
 
     // Paralelismo //
     int num_process;
-    omp_set_num_threads(4);
+   // omp_set_num_threads(8);
 
     // Simulación
 
@@ -392,14 +392,14 @@ int main()
     double tiempo_promedio = 0;
     for (int i = 0; i < LAPS; i++)
     {
+        // Inicializando matriz.
+        initMatrix(frontera_filas, frontera_columnas, tablero);
+
         gettimeofday(&ti, NULL); // Tiempo inicial
         for (int i = 0; i < DIAS; i++)
         {
 // Actualizando proximos estados de la matriz.
-#pragma omp parallel private(num_process)
-            {
-                num_process = omp_get_thread_num();
-#pragma omp for
+#pragma omp parallel for schedule (static, 4)
                 for (int indice_fila = 0; indice_fila < frontera_filas; indice_fila++)
                 {
                     for (int indice_columna = 0; indice_columna < frontera_columnas; indice_columna++)
@@ -407,14 +407,12 @@ int main()
                         Calcular_Proximo_Estado(tablero, tablero_auxiliar, tablero[indice_fila][indice_columna], frontera_filas, frontera_columnas);
                     }
                 }
-            }
+            
 
             // Swap de punteros de la matriz.
             temp = tablero;
             tablero = tablero_auxiliar;
             tablero_auxiliar = temp;
-
-          
         }
         gettimeofday(&tf, NULL);
         tiempo = (tf.tv_sec - ti.tv_sec) * 1000.0 + (tf.tv_usec - ti.tv_usec) / 1000.0;
